@@ -1,73 +1,160 @@
-# React + TypeScript + Vite
+# 🔮 魔女卡牌 · Witch Card
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> 六芒星炼成 · 因子融合 · 卡牌收集与战斗
 
-Currently, two official plugins are available:
+你是一位有点穷的见习魔女，唯一的本事是**炼成卡片**——把元素、怪物魂魄、魔法词缀扔进坩埚，用六芒星阵融合成全新的魔法卡牌。带三张卡进入副本，回合制击败怪物，铭刻它们的因子。还欠学院 300 铜币的材料费。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🎮 核心玩法
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🧪 因子融合
 
-## Expanding the ESLint configuration
+每张卡由多个「**因子**」定义——一个因子就是一个词，自带属性加成和能力：
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```
+  「火」        →  ATK+8, SPD+3, MP+8
+  「守护」      →  DEF+12, HP+8, SPD-2
+  「巨龙血脉」  →  全属性大涨 + 龙系抗性
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+  ── 融合后 ──→  卡片属性 = 所有因子相加
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+**没有两张卡是相同的。**
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### ⭐ 六芒星炼成（稳定路线）
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+将 6 张单因子卡放入六芒星阵，全因子必定继承，产出一张成品卡。如果碰巧放入了对立因子（如火+水），它们会融合成稀有因子：
+
 ```
+火 + 水 → 蒸汽 (SR)　　　光 + 暗 → 黄昏 (SSR)
+狂热 + 冷静 → 禅定 (SR)  火 + 狂热 → 狱火 (SSR)
+```
+
+### 6:1 因子堆叠
+
+6 张相同因子卡可堆叠升阶：`6×N → R → 6×R → SR → SSR → UR`，每次升阶赠送属性奖励（+10HP/+2ATK/+2MP）。
+
+### 💀 禁断融合（赌狗路线）
+
+把两张成品卡扔进坩埚，每个因子约 **49% 概率继承**。运气爆棚 → 超神卡，运气崩盘 → 白板。
+
+### ⚔️ 3 人小队战斗
+
+带 3 张卡进入副本，前排承受 60% 火力，后排输出/治疗。全手动回合制：选技能 → 选目标 → 看效果。
+
+### 📜 铭刻系统
+
+战斗胜利后可用铜/银/金铭刻卡抽取怪物的因子，每只怪只能铭刻一次。
+
+---
+
+## 🗺️ 世界
+
+| 区域 | 难度 | 内容 |
+|------|:--:|------|
+| 🏫 学院 | — | 购买元素卡、铭刻卡、消耗品 |
+| 🌲 试炼之森 | N | 史莱姆、蝙蝠、石魔像、曼德拉草 |
+| 🌿 密林深处 | R | 火焰精、冰晶灵、幽灵书、雷狼 |
+| 🏛️ 古代遗迹 | SR | 独角兽 BOSS、暗影魅魔、史莱姆王 |
+| 🌑 深渊裂隙 | SSR | 幼龙 BOSS、不死亡灵 |
+| 🧪 魔药屋 | — | 六芒星 + 禁断融合 |
+| 🏥 医院 | — | 治愈重伤卡牌 |
+| 📦 仓库 | — | 无限存储 |
+
+---
+
+## 🎨 设计理念
+
+### 所有技能源于因子
+
+怪物不再有硬编码技能和属性。每只怪物由 **因子池 + 精英等级** 动态生成——属性由因子求和 × 精英倍率计算，技能来自稀有因子自带技能、因子组合技或因子共鸣。
+
+### 因子组合技
+
+16 组因子组合自动触发额外技能效果。例如：`火焰精` 携带火 + 猛攻因子，组合产出「烈焰冲锋」技能。
+
+### 美术风格
+
+**无厘头可爱魔法风**——不是黑暗哥特，是"穷魔女努力打工还债"的轻松调性。温暖水彩手绘风格，UI 采用魔法阵 + 坩埚 + 羊皮纸元素。
+
+---
+
+## 📊 规模
+
+| 项目 | 数量 |
+|------|:--:|
+| 因子（N/R/SR/SSR/UR） | 40+ |
+| 因子组合技 | 16 组 |
+| 怪物种类 | 16 种 |
+| 副本区域 | 4 个 |
+| 技能 | 20+ |
+
+---
+
+## 🛠️ 技术栈
+
+| 技术 | 用途 |
+|------|------|
+| React 19 + TypeScript 6 | UI 框架 |
+| Vite 8 | 构建工具 |
+| Tailwind CSS 4 | 样式系统 |
+| Zustand 5 | 状态管理 |
+| IndexedDB | 本地存档 |
+| 豆包 Seedream API | 场景资产生成 |
+
+### 架构原则
+
+- **零后端依赖**：纯前端 SPA，IndexedDB 本地存档
+- **引擎零 React 依赖**：`engine/` 目录下纯 TS 逻辑，可独立单元测试
+- **配置驱动**：因子、怪物、组合技、商店全部 TS 配置文件，人可直接编辑
+
+---
+
+## 🚀 快速开始
+
+```bash
+git clone git@github.com:gethubws/Witch_card.git
+cd Witch_card
+npm install
+npm run dev        # 启动开发服务器 → http://localhost:5173
+npm run build      # 生产构建 → dist/
+```
+
+---
+
+## 📁 项目结构
+
+```
+src/
+├── config/          # 游戏数据（factors / monsters / synergies / shops）
+├── engine/          # 核心逻辑（Fusion / Combat / Monster / Synergy / Save）
+├── stores/          # Zustand 状态管理
+├── components/      # React 页面组件
+│   ├── battle/      # 副本 & 战斗
+│   ├── cauldron/    # 融合台（六芒星 + 禁断）
+│   ├── shop/        # 学院商店
+│   ├── hospital/    # 医院
+│   ├── warehouse/   # 仓库
+│   ├── tutorial/    # 新手教程
+│   ├── bag/         # 背包
+│   └── ui/          # 通用 UI 组件
+├── types/           # TypeScript 类型定义
+├── index.css        # 全局样式 & 设计系统
+├── main.tsx         # 入口
+└── App.tsx          # 主路由 & 布局
+```
+
+---
+
+## 🚧 开发路线
+
+| 版本 | 状态 | 内容 |
+|------|:--:|------|
+| v0 | ✅ 完成 | React SPA + 本地存档 + 六芒星合成 + 禁断融合 + 副本战斗 + 铭刻 + 医院/仓库/教程 |
+| v1 | 🔮 规划 | 后端 + 卡面实时生成 + 全部副本 + 钓鱼/绘画系统 |
+| v2 | 🌟 愿景 | Electron 打包 + Steamworks |
+
+---
+
+*🧙 由 [蓝 (Lan)](https://github.com/gethubws) 设计开发 · 2026*
