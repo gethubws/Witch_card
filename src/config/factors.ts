@@ -346,6 +346,12 @@ export const BASE_FACTORS: FactorDef[] = [
     stats:{ atk:5, def:8, spd:0, hp:3, mp:0, crit:2, dodge:0 },
     passive:'被攻击时反击15%伤害',
     description:'带刺的铠甲' },
+  { id:'膨胀', element:'地', level:'R',
+    promptZh:'膨胀鼓起的弹力身体', promptEn:'inflated bouncy body, balloon-like',
+    stats:{ atk:2, def:20, spd:-4, hp:24, mp:4, crit:0, dodge:0 },
+    passive:'受到伤害时反弹10%给攻击者',
+    skill:{ name:'膨胀防御', type:'active', target:'self', effect:'自身DEF+25% 2回合', mpCost:12, desc:'吸入空气急剧膨胀，弹开攻击' },
+    description:'吸入空气急剧膨胀，弹开攻击' },
 
   // ═══════ 风系扩展 ═══════
   { id:'迅捷', element:'风', level:'R',
@@ -450,6 +456,17 @@ export const FUSION_FACTORS: FactorDef[] = [
     stats:{ atk:30, def:5, spd:20, hp:12, mp:18, crit:22, dodge:8 },
     skill:{ name:'圣雷', type:'active', target:'single_enemy', effect:'ATK×2.5单体·必暴+破甲', mpCost:26, multiplier:2.5, pierceDef:0.3, desc:'光与风交织的制裁之雷' },
     description:'光与风交织的制裁之雷' },
+  // 膨胀系列融合
+  { id:'气球', element:'风', subElements:['地','风'], level:'R',
+    promptZh:'气球炸弹飘浮', promptEn:'balloon bomb, floating explosive',
+    stats:{ atk:8, def:12, spd:8, hp:18, mp:5, crit:2, dodge:5 },
+    skill:{ name:'气球炸弹', type:'active', target:'single_enemy', effect:'DEF×1.5自爆式攻击', mpCost:14, multiplier:1.5, defBased:true, desc:'膨胀到极限后炸向敌人' },
+    description:'膨胀+风, 膨胀到极限后炸向敌人' },
+  { id:'毒云', element:'暗', subElements:['地','暗'], level:'R',
+    promptZh:'毒云弥漫', promptEn:'toxic cloud, poisonous miasma',
+    stats:{ atk:10, def:6, spd:2, hp:10, mp:10, crit:4, dodge:2 },
+    skill:{ name:'毒云扩散', type:'active', target:'all_enemies', effect:'全体中毒(-3%HP×3回合)', mpCost:18, desc:'毒液汽化弥漫全场' },
+    description:'膨胀+毒, 毒液汽化弥漫全场' },
 ];
 
 // ============ 所有因子字典 ============
@@ -471,6 +488,8 @@ export const CONFLICT_FUSIONS: ConflictFusionRule[] = [
   { inputs: ['水','光'], output:'珊瑚', level:'R' },
   { inputs: ['暗','光'], output:'月蚀', level:'SR' },
   { inputs: ['风','光'], output:'雷鸣', level:'SR' },
+  { inputs: ['膨胀','风'], output:'气球', level:'R' },
+  { inputs: ['膨胀','毒'], output:'毒云', level:'R' },
 ];
 
 // ============ 共鸣规则（仅跨元素）============
@@ -489,7 +508,7 @@ export const STAR_FACTOR_POOLS: Record<number, string[]> = {
   2: ['地','火','水','冰','风','雷','光','暗',
     '猛攻','精准','守护','游击','治愈','诅咒'],
   3: ['岩石','烈焰','激流','极寒','暴风','雷霆','圣光','暗影',
-    '反击','坚韧','分裂','尖刺','迅捷','增幅','毒','诅咒之血','幻觉','瞬移',
+    '反击','坚韧','分裂','尖刺','膨胀','迅捷','增幅','毒','诅咒之血','幻觉','瞬移',
     '雷暴','沙暴','熔岩','霜冻','疾风','藤蔓','珊瑚'],
   4: ['山岳','爆炎','深渊','玄冰','飓风','劫雷','神辉','冥暗',
     '咆哮','结界','王之力','王之粘液','巨龙血脉','分身','深渊之印',

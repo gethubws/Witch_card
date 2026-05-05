@@ -210,8 +210,9 @@ export interface Dungeon {
   name: string;
   description: string;
   difficulty: 'N' | 'R' | 'SR' | 'SSR';
-  monsters: string[];      // monster id 列表
-  bossMonster?: string;    // boss monster id
+  monsters: string[];
+  bossMonster?: string;
+  hiddenMonster?: string;  // 隐藏怪物id
 }
 
 export interface DungeonEncounter {

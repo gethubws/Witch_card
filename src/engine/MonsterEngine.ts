@@ -6,6 +6,18 @@ import { ALL_FACTORS } from '../config/factors';
 import { calcCardStat, collectSkills } from './FactorEngine';
 import { evaluateSynergies } from './SynergyEngine';
 
+/** 从全部因子中随机抽取 n 个 (可跨稀有度, 极限全UR) */
+function randomFactors(n: number): FactorDef[] {
+  const allIds = Object.keys(ALL_FACTORS);
+  const picked: FactorDef[] = [];
+  const remaining = [...allIds];
+  while (picked.length < n && remaining.length > 0) {
+    const i = Math.floor(Math.random() * remaining.length);
+    picked.push(ALL_FACTORS[remaining.splice(i, 1)[0]]);
+  }
+  return picked;
+}
+
 export type EliteLevel = 'normal' | 'elite' | 'boss';
 
 /** 精英等级加成 — N×2, R×3, SSR×8 */
@@ -16,10 +28,17 @@ const ELITE_BONUS: Record<EliteLevel, { hpMult: number; atkMult: number; hpFlat:
 };
 
 export function buildMonster(monster: Monster, eliteLevel: EliteLevel = 'normal'): BattleCard {
-  const factors: FactorDef[] = [];
-  for (const fid of monster.factorPool) {
-    const f = ALL_FACTORS[fid];
-    if (f) factors.push(f);
+  let factors: FactorDef[];
+
+  // 混合史莱姆: 随机6因子(跨全稀有度)
+  if (monster.id === 'chaos_slime') {
+    factors = randomFactors(6);
+  } else {
+    factors = [];
+    for (const fid of monster.factorPool) {
+      const f = ALL_FACTORS[fid];
+      if (f) factors.push(f);
+    }
   }
 
   const baseStats = factors.length > 0 ? calcCardStat(factors) : fallbackStats();

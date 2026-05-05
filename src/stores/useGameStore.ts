@@ -449,7 +449,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (team.length === 0) return;
 
     // 生成怪物
-    const monsterIds = dungeon.bossMonster ? [dungeon.bossMonster] : dungeon.monsters;
+    // 生成怪物: 15%概率遇到隐藏怪物
+    let monsterIds = dungeon.monsters;
+    if (dungeon.hiddenMonster && Math.random() < 0.15) {
+      monsterIds = [dungeon.hiddenMonster];
+    }
     const mid = monsterIds[Math.floor(Math.random() * monsterIds.length)];
     const monster = MONSTER_MAP[mid];
     if (!monster) return;

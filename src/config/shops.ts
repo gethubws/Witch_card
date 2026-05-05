@@ -1,5 +1,5 @@
 // ============================================
-// 魔女卡牌 — 商店 & 副本配置 v4 (4生态副本)
+// 魔女卡牌 — 商店 & 副本配置 v5
 // ============================================
 import type { ShopItem, Dungeon } from '../types';
 
@@ -14,7 +14,6 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id:'forbidden_book', name:'禁断之书', description:'禁断融合消耗品(1次)', price:15, currency:'diamond', type:'consumable' },
 ];
 
-/** 副本解锁顺序 */
 const DUNGEON_ORDER = ['slime_plains','withered_woods','shadow_cavern','dragon_volcano'];
 
 export function getNextDungeon(currentId: string): string | null {
@@ -27,28 +26,29 @@ export const DUNGEONS: Dungeon[] = [
     id:'slime_plains', name:'🟢 史莱姆平原',
     description:'弹弹团子的乐园·新手试炼',
     difficulty:'N',
-    monsters: ['green_slime','blue_slime','red_slime','gold_slime'],
+    monsters: ['green_slime','red_slime','blue_slime','balloon_slime',
+               'thunder_slime','wind_slime','giant_slime',
+               'light_slime','dark_slime'],
     bossMonster: 'slime_king',
+    hiddenMonster: 'chaos_slime',
   },
+  // 副本2-4: 待后续重构
   {
     id:'withered_woods', name:'🌲 枯木之森',
-    description:'被诅咒的千年古林',
+    description:'被诅咒的千年古林 (施工中)',
     difficulty:'R',
-    monsters: ['mandrake','tree_sprout','maneater','treant_guard'],
-    bossMonster: 'treant_elder',
+    monsters: ['mandrake'],
   },
   {
     id:'shadow_cavern', name:'🕳️ 暗影洞穴',
-    description:'深渊裂隙蔓延的地下迷宫',
+    description:'深渊裂隙的地下迷宫 (施工中)',
     difficulty:'SR',
-    monsters: ['bat','golem','thunder_wolf','dark_succubus'],
-    bossMonster: 'abyss_lord',
+    monsters: ['bat','golem'],
   },
   {
     id:'dragon_volcano', name:'🐉 龙巢火山',
-    description:'龙族巢穴·最终试炼',
+    description:'龙族巢穴·最终试炼 (施工中)',
     difficulty:'SSR',
-    monsters: ['fire_lizard','thunder_bird','light_sprite','fire_spirit','ice_spirit','unicorn','wind_fairy'],
-    bossMonster: 'baby_dragon',
+    monsters: ['thunder_wolf'],
   },
 ];
