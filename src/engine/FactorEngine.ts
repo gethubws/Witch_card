@@ -73,43 +73,23 @@ export function calcCounterMultiplier(attackerFactors: FactorDef[], defenderFact
   const atkElements = countElements(attackerFactors);
   const defElements = countElements(defenderFactors);
 
-  let bestMultiplier = 1.0;
-
-  for (const [atkEl, _atkCount] of Object.entries(atkElements)) {
-    const counters = COUNTER_MAP[atkEl];
-    if (!counters || counters.length === 0) continue;
-
-    for (const counterTarget of counters) {
-      if (defElements[counterTarget]) {
-        // 我方克制对方 → ×1.3
-        bestMultiplier = Math.max(bestMultiplier, 1.3);
-      }
+  // 找到双方发展度最高的元素作为"主色"
+  const findDominant = (counts: Record<string, number>): string | null => {
+    let best = '', bestN = 0;
+    for (const [el, n] of Object.entries(counts)) {
+      if (n > bestN) { best = el; bestN = n; }
     }
-    // 检查是否被克制 → ×0.7（但防御方多标签取最优，很难被克）
-    // 对方元素克制我方 = 对方克我
-    // 遍历对方每个元素，看是否克我方的元素
-  }
+    return best || null;
+  };
 
-  // 防御方取最优：只要防御方有任一标签不克制攻击方，就不算被克
-  let worstMultiplier = 1.0;
-  for (const [defEl, _defCount] of Object.entries(defElements)) {
-    const defCounters = COUNTER_MAP[defEl];
-    if (!defCounters || defCounters.length === 0) continue;
-    for (const counterTarget of defCounters) {
-      if (atkElements[counterTarget]) {
-        // 对方克制我方 → ×0.7
-        if (worstMultiplier === 1.0) worstMultiplier = 0.7;
-      }
-    }
-  }
-  // 如果攻击方有非被克元素，可以补偿
-  // 简化：取 best(克制倍率) 和 worst(被克倍率) 的乘积
-  const hasAdvantage = bestMultiplier > 1.0;
-  const hasDisadvantage = worstMultiplier < 1.0;
+  const domAtk = findDominant(atkElements);
+  const domDef = findDominant(defElements);
+  if (!domAtk || !domDef) return 1.0;
 
-  if (hasAdvantage && hasDisadvantage) return 1.0; // 互克抵消
-  if (hasAdvantage) return 1.3;
-  if (hasDisadvantage) return 0.7;
+  // 攻击方主色克制防御方主色 → ×1.3
+  if (COUNTER_MAP[domAtk]?.includes(domDef)) return 1.3;
+  // 攻击方主色被防御方主色克制 → ×0.7
+  if (COUNTER_MAP[domDef]?.includes(domAtk)) return 0.7;
   return 1.0;
 }
 
