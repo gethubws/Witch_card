@@ -13,6 +13,7 @@ import { HospitalPage } from './components/hospital/HospitalPage';
 import { WarehousePage } from './components/warehouse/WarehousePage';
 import { TutorialOverlay } from './components/tutorial/TutorialOverlay';
 import { Modal, Button } from './components/ui';
+import { ALL_FACTORS } from './config/factors';
 
 // 地图导航
 const MAP_ITEMS = [
@@ -26,8 +27,23 @@ const MAP_ITEMS = [
 const App: React.FC = () => {
   const { currentPage, setPage, gold, diamonds, bag, battle, pendingDungeonId, startBattle, load, save, logMessages, tutorialDone, newGame, blankEngraveCards, captureCards } = useGameStore();
 
-  // debug only: window.__store = useGameStore
+  // debug only
   (window as any).__store = useGameStore;
+  (window as any).__giveFactor = (factorId: string) => {
+    const s = useGameStore.getState();
+    const f = ALL_FACTORS[factorId];
+    if (!f) { console.log('❌ Factor not found:', factorId); return; }
+    const card = {
+      id: `card_${Date.now()}`,
+      name: f.id,
+      factors: [f],
+      imageUrl: null,
+      stars: 1,
+      status: 'normal' as const,
+    };
+    useGameStore.setState({ bag: [...s.bag, card] });
+    console.log('✅ Added:', f.id, f.level);
+  };
   const [showBag, setShowBag] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
