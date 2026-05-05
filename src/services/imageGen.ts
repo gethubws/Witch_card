@@ -7,7 +7,7 @@ import type { FactorDef } from '../types';
 
 const DOUBAO_URL = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
 const DOUBAO_KEY = 'ark-917189ab-74ce-48e4-b03a-5caf088ff2a7-1cac1';
-const DOUBAO_MODEL = 'doubao-seedream-4-0-250828';
+const DOUBAO_MODEL = 'doubao-seedream-4-5-251128';
 
 const STYLE = [
   'chibi cute magical creature, watercolor texture, hand-drawn style',
@@ -41,7 +41,7 @@ export async function generateCardImage(prompt: string): Promise<string | null> 
       body: JSON.stringify({
         model: DOUBAO_MODEL,
         prompt: `${prompt}, ${NEGATIVE}`,
-        size: '1024x1024',
+        size: '2048x2048', // 4.5 要求 2048×2048
         response_format: 'b64_json',
         n: 1,
       }),
