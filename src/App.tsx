@@ -76,7 +76,7 @@ const App: React.FC = () => {
   if (currentPage === 'dungeon') return <DungeonPage />;
   if (currentPage === 'teamSelect') return (
     <TeamSelect
-      dungeonId={pendingDungeonId || 'forest_trial'}
+      dungeonId={pendingDungeonId || 'slime_plains'}
       onBack={() => setPage('dungeon')}
       onStart={(team) => startBattle(team)}
     />
