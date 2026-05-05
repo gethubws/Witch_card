@@ -83,7 +83,7 @@ export interface Monster {
   name: string;
   eliteLevel: EliteLevel;   // 精英等级（替代 hardcoded stats）
   factorPool: string[];      // 因子 id 列表（N:6, R:9, SR:12, SSR:15）
-  imageUrl: string;
+  imageUrl: string | null;
   description: string;
   // stats 和 skills 由 MonsterEngine.buildMonster() 动态生成
 }

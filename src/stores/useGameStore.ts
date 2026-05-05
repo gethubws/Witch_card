@@ -9,7 +9,7 @@ import { createBattleCard, createBattleMonster, executeSkill, executeBasicAttack
 import { createNewSave, saveGame, loadGame } from '../engine/SaveManager';
 import { ALL_FACTORS, STAR_FACTOR_POOLS } from '../config/factors';
 import { MONSTER_MAP } from '../config/monsters';
-import { SHOP_ITEMS, DUNGEONS } from '../config/shops';
+import { SHOP_ITEMS, DUNGEONS, getNextDungeon } from '../config/shops';
 
 // ---- Helper: generate unique card ID ----
 let cardIdCounter = Date.now();
@@ -100,7 +100,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   bag: [],
   warehouse: [],
   hospitalQueue: [],
-  unlockedAreas: ['forest_trial'],
+  unlockedAreas: ['slime_plains'],
   tutorialDone: false,
   currentPage: 'home',
   battle: null,
@@ -686,8 +686,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (s.battle.phase === 'victory') {
       const reward = 10 + Math.floor(Math.random() * 30);
-      set({ gold: s.gold + reward, battle: null, currentPage: 'home' });
-      get().addLog(`💰 获得 ${reward} 金币`);
+      const nextDungeon = s.pendingDungeonId ? getNextDungeon(s.pendingDungeonId) : null;
+      const unlockedAreas = nextDungeon && !s.unlockedAreas.includes(nextDungeon)
+        ? [...s.unlockedAreas, nextDungeon]
+        : s.unlockedAreas;
+      const unlockMsg = unlockedAreas.length > s.unlockedAreas.length
+        ? ` | 🗺️ 新副本解锁!` : '';
+      set({ gold: s.gold + reward, battle: null, currentPage: 'home', unlockedAreas });
+      get().addLog(`💰 获得 ${reward} 金币${unlockMsg}`);
       return;
     }
 
