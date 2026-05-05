@@ -3,6 +3,7 @@
 // ============================================
 import type { FactorDef } from '../types';
 import { ALL_FACTORS, CONFLICT_FUSIONS, RESONANCES } from '../config/factors';
+import { solveRecipeChain } from './RecipeEngine';
 
 export interface FusionResult {
   factors: FactorDef[];
@@ -22,8 +23,8 @@ const LEVEL_UP_NAMES: Record<string, Record<number, string>> = {
   '火': { 1:'烈焰', 2:'爆炎', 3:'阳炎', 4:'凤凰火' },
   '水': { 1:'激流', 2:'深渊', 3:'沧溟', 4:'归墟' },
   '冰': { 1:'极寒', 2:'玄冰', 3:'永冻', 4:'绝对零度' },
-  '风': { 1:'暴风', 2:'飓风', 3:'虚空风', 4:'时空风暴' },
-  '雷': { 1:'雷霆', 2:'劫雷', 3:'天罚', 4:'混沌雷' },
+  '风': { 1:'暴风', 2:'飓风', 3:'虚空风' },
+  '雷': { 1:'雷霆', 2:'劫雷', 3:'天罚' },
   '暗': { 1:'暗影', 2:'冥暗', 3:'虚无', 4:'湮灭' },
   '光': { 1:'圣光', 2:'神辉', 3:'天光', 4:'创世之光' },
   '地': { 1:'岩石', 2:'山岳', 3:'地核', 4:'星核' },
@@ -54,9 +55,12 @@ function upgradeFactor(f: FactorDef, levelsUp: number): FactorDef {
 /** 六芒星炼成 */
 export function hexagramFusion(inputFactors: FactorDef[]): FusionResult {
   const { factors: stacked, stackingLog, stackingBonus } = applyFactorStacking(inputFactors);
-  const { factors: afterConflict, appliedConflicts } = applyConflictFusions(stacked);
+  const { result: afterRecipe, steps: recipeSteps } = solveRecipeChain(stacked);
+  const { factors: afterConflict, appliedConflicts } = applyConflictFusions(afterRecipe);
   const { title, appliedResonances } = applyResonances(afterConflict);
-  return { factors: afterConflict, appliedConflicts, appliedResonances, title, stackingLog, stackingBonus };
+  const recipeLog = recipeSteps.length > 0 ? `🧪 配方: ${recipeSteps.join(' → ')}` : undefined;
+  const logItems = [stackingLog, recipeLog].filter(Boolean);
+  return { factors: afterConflict, appliedConflicts, appliedResonances, title, stackingLog: logItems.join(' | ') || undefined, stackingBonus };
 }
 
 /** 禁断融合 */
@@ -66,9 +70,12 @@ export function forbiddenFusion(parentFactorsA: FactorDef[], parentFactorsB: Fac
     if (Math.random() < 0.49) inherited.push(f);
   }
   const { factors: stacked, stackingLog, stackingBonus } = applyFactorStacking(inherited);
-  const { factors, appliedConflicts } = applyConflictFusions(stacked);
+  const { result: afterRecipe, steps: recipeSteps } = solveRecipeChain(stacked);
+  const { factors, appliedConflicts } = applyConflictFusions(afterRecipe);
   const { title, appliedResonances } = applyResonances(factors);
-  return { factors, appliedConflicts, appliedResonances, title, stackingLog, stackingBonus };
+  const recipeLog = recipeSteps.length > 0 ? `🧪 配方: ${recipeSteps.join(' → ')}` : undefined;
+  const logItems = [stackingLog, recipeLog].filter(Boolean);
+  return { factors, appliedConflicts, appliedResonances, title, stackingLog: logItems.join(' | ') || undefined, stackingBonus };
 }
 
 /** 同因子堆叠：6×同因子 → 升阶 */

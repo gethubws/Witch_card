@@ -5,8 +5,8 @@
 // ============================================
 import type { Monster } from '../types';
 
-// 14个N因子: 地火水冰风雷光暗 猛攻精准守护游击 治愈诅咒
-const ALL_N = ['地','火','水','冰','风','雷','光','暗','猛攻','精准','守护','游击','治愈','诅咒'];
+// 20个N因子
+export const ALL_N = ['地','火','水','冰','风','雷','光','暗','猛攻','精准','守护','游击','治愈','诅咒','刃','壁','雾','血','晶','尘'];
 
 function pickN(exclude: string[], count: number): string[] {
   const pool = ALL_N.filter(f => !exclude.includes(f));
@@ -89,6 +89,38 @@ export const MONSTERS: Monster[] = [
     id:'chaos_slime', name:'🌈 混合史莱姆', eliteLevel:'elite',
     factorPool:[], // 运行时随机生成
     imageUrl:'/monsters/chaos_slime.png', description:'一切史莱姆的混沌融合体，完全不可预测',
+  },
+
+  // —— 新N因子小怪 (6只, 1R+5N) ——
+  {
+    id:'stone_sprite', name:'💎 碎石精', eliteLevel:'normal',
+    factorPool:['岩石','地','晶','尘','壁','守护'],
+    imageUrl:'/monsters/stone_sprite.png', description:'大地碎晶凝成的小精魂',
+  },
+  {
+    id:'wall_turtle', name:'🐢 岩壁龟', eliteLevel:'normal',
+    factorPool:['尖刺','壁','晶','地','守护','水'],
+    imageUrl:'/monsters/wall_turtle.png', description:'硬壳上长满水晶的小龟',
+  },
+  {
+    id:'mist_cluster', name:'🌫️ 雾团', eliteLevel:'normal',
+    factorPool:['幻觉','雾','水','风','暗','光'],
+    imageUrl:'/monsters/mist_cluster.png', description:'水面蒸腾的迷雾聚合体',
+  },
+  {
+    id:'blood_bat', name:'🩸 血蝠', eliteLevel:'normal',
+    factorPool:['毒','血','暗','猛攻','游击','风'],
+    imageUrl:'/monsters/blood_bat.png', description:'吸食魔力的微型红蝙蝠',
+  },
+  {
+    id:'blade_rat', name:'🐀 刃牙鼠', eliteLevel:'normal',
+    factorPool:['反击','刃','猛攻','游击','风','地'],
+    imageUrl:'/monsters/blade_rat.png', description:'门牙如刃的洞穴鼠',
+  },
+  {
+    id:'dust_sprite', name:'💨 尘埃精', eliteLevel:'normal',
+    factorPool:['分裂','尘','风','地','光','暗'],
+    imageUrl:'/monsters/dust_sprite.png', description:'风化的尘埃精灵，打散了还会聚拢',
   },
 
   // ═══════════════════════════════
