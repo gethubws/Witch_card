@@ -11,6 +11,7 @@ import { MONSTER_MAP } from '../../config/monsters';
 export const DungeonPage: React.FC = () => {
   const { unlockedAreas, selectDungeon, setPage } = useGameStore();
   const available = DUNGEONS.filter(d => unlockedAreas.includes(d.id));
+  console.log('🔍 DungeonPage: unlockedAreas =', unlockedAreas, 'available =', available.length);
 
   return (
     <div className="min-h-screen p-6" style={{ background: '#0d1117' }}>
