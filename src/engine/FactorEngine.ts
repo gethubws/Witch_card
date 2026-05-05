@@ -3,6 +3,7 @@
 // ============================================
 import type { FactorDef, CardStat, FactorCategory } from '../types';
 import { ALL_FACTORS } from '../config/factors';
+import { evaluateSynergies } from './SynergyEngine';
 
 /** 根据 id 列表获取因子对象 */
 export function getFactors(ids: string[]): FactorDef[] {
@@ -54,9 +55,16 @@ export function countByTag(factors: FactorDef[]): Record<string, number> {
   return counts;
 }
 
-/** 获取卡片的主动技能列表（从所有因子的 skill 字段汇总） */
+/** 获取卡片的主动技能列表（因子自带 + 组合技） */
 export function collectSkills(factors: FactorDef[]) {
-  return factors.filter(f => f.skill && f.skill.type === 'active').map(f => f.skill!);
+  const own = factors.filter(f => f.skill && f.skill.type === 'active').map(f => f.skill!);
+  const synergies = evaluateSynergies(factors);
+  // 去重（组合技可能与因子自带重名）
+  const names = new Set(own.map(s => s.name));
+  for (const s of synergies) {
+    if (!names.has(s.name)) { own.push(s); names.add(s.name); }
+  }
+  return own;
 }
 
 /** 获取卡片的被动效果列表 */

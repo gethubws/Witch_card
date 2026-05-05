@@ -42,10 +42,26 @@ export const CardFrame: React.FC<{
   }, 'N') || 'N';
   const w = small ? 120 : 180;
   const h = small ? 186 : 280;
+  const stars = card.stars || 1;
+  const starBorderColor = stars >= 6 ? 'rgba(255,215,0,0.6)' : stars >= 4 ? 'rgba(212,165,116,0.5)' : stars >= 3 ? 'rgba(192,192,192,0.4)' : stars >= 2 ? 'rgba(180,120,80,0.3)' : 'transparent';
   
   return (
     <div className={`card-frame card-rarity-${highestLevel} ${className||''}`}
-      style={{ width: w, height: h }} onClick={onClick}>
+      style={{ width: w, height: h, position: 'relative' }} onClick={onClick}>
+      {/* 升星装饰圈 */}
+      {stars > 1 && (
+        <div className="absolute inset-0 pointer-events-none rounded-lg z-10" style={{
+          border: `2px solid ${starBorderColor}`,
+          boxShadow: `0 0 ${6+stars*2}px ${starBorderColor}, inset 0 0 ${3+stars}px ${starBorderColor}`,
+        }} />
+      )}
+      {/* 升星角标 */}
+      {stars > 1 && (
+        <div className="absolute top-1 right-1 z-20 flex items-center gap-0"
+          style={{ fontSize: stars >= 5 ? 11 : 9, fontWeight: 700, color: starBorderColor, textShadow: '0 0 4px rgba(0,0,0,0.5)' }}>
+          {'★'.repeat(Math.min(stars, 6))}
+        </div>
+      )}
       {/* 卡面内容 */}
       <div className="flex flex-col h-full" style={{ zIndex: 2, position: 'relative' }}>
         {/* 因子标签（顶部） */}

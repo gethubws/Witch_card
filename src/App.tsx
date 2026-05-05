@@ -6,7 +6,9 @@ import { useGameStore } from './stores/useGameStore';
 import { BagPanel } from './components/bag/BagPanel';
 import { CauldronPage } from './components/cauldron/CauldronPage';
 import { ShopPage } from './components/shop/ShopPage';
-import { DungeonPage, BattlePage } from './components/battle/DungeonPage';
+import { DungeonPage } from './components/battle/DungeonPage';
+import { TeamSelect } from './components/battle/TeamSelect';
+import { BattleField } from './components/battle/BattleField';
 import { HospitalPage } from './components/hospital/HospitalPage';
 import { WarehousePage } from './components/warehouse/WarehousePage';
 import { TutorialOverlay } from './components/tutorial/TutorialOverlay';
@@ -22,7 +24,10 @@ const MAP_ITEMS = [
 ];
 
 const App: React.FC = () => {
-  const { currentPage, setPage, gold, diamonds, bag, battle, load, save, logMessages, tutorialDone, newGame, engraveCopper, engraveSilver, engraveGold } = useGameStore();
+  const { currentPage, setPage, gold, diamonds, bag, battle, pendingDungeonId, startBattle, load, save, logMessages, tutorialDone, newGame, blankEngraveCards, captureCards } = useGameStore();
+
+  // debug only: window.__store = useGameStore
+  (window as any).__store = useGameStore;
   const [showBag, setShowBag] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
@@ -49,10 +54,17 @@ const App: React.FC = () => {
     </div>;
   }
 
-  if (battle) return <BattlePage />;
+  if (battle) return <BattleField />;
   if (currentPage === 'cauldron') return <CauldronPage />;
   if (currentPage === 'shop') return <ShopPage />;
   if (currentPage === 'dungeon') return <DungeonPage />;
+  if (currentPage === 'teamSelect') return (
+    <TeamSelect
+      dungeonId={pendingDungeonId || 'forest_trial'}
+      onBack={() => setPage('dungeon')}
+      onStart={(team) => startBattle(team)}
+    />
+  );
   if (currentPage === 'hospital') return <HospitalPage />;
   if (currentPage === 'warehouse') return <WarehousePage />;
 
@@ -74,9 +86,8 @@ const App: React.FC = () => {
         <span className="flex items-center gap-1 font-bold text-sm" style={{ color: 'var(--copper)' }}>💰 {gold}</span>
         <span className="flex items-center gap-1 font-bold text-sm" style={{ color: 'var(--magic)' }}>💎 {diamonds}</span>
         <span className="text-xs opacity-60">|</span>
-        <span className="text-xs" title="铜铭刻卡">🟤{engraveCopper}</span>
-        <span className="text-xs" title="银铭刻卡">⚪{engraveSilver}</span>
-        <span className="text-xs" title="金铭刻卡">🟡{engraveGold}</span>
+        <span className="text-xs" title="空白铭刻卡">📜{blankEngraveCards}</span>
+        <span className="text-xs" title="空白卡(捕捉)">🎴{captureCards}</span>
         <span className="flex items-center gap-1 font-bold text-sm opacity-50">🃏 {bag.length}/100</span>
       </div>
 

@@ -4,14 +4,17 @@
 import type { SaveData } from '../types';
 
 const DB_NAME = 'witch_card_save';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'saves';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE_NAME, { keyPath: 'key' });
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'key' });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -65,8 +68,11 @@ export function createNewSave(): SaveData {
     unlockedAreas: ['forest_trial'],
     tutorialDone: false,
     questFlags: {},
-    engraveCopper: 1,
+    engraveCopper: 0,
     engraveSilver: 0,
     engraveGold: 0,
+    blankEngraveCards: 1,
+    captureCards: 0,
+    cardImageCache: {},
   };
 }

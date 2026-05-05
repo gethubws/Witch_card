@@ -79,6 +79,7 @@ export function buildMonster(monster: Monster, eliteLevel: EliteLevel = 'normal'
     currentMp: eliteStats.maxMp,
     position: 'front',
     buffs: [],
+    uid: monster.id,
   };
 }
 

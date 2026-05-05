@@ -1,16 +1,18 @@
 // ============================================
 // 魔女卡牌 — 坩埚融合台 v5 (重构融合界面)
 // ============================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../../stores/useGameStore';
 import { Modal, Button, CardFrame, FactorBadge } from '../ui';
+import { buildCardPrompt, generateCardImage, starUpImg2Img } from '../../services/imageGen';
+import { ALL_FACTORS } from '../../config/factors';
 
 const ROOM_IMG = '/assets/scenes/cauldron-room.png';
 const ROOM_GLOW = '/assets/scenes/cauldron-room-glow.png';
 
 const HEX_X = 51; const HEX_Y = 85; const HEX_W = 30; const HEX_H =20;
 
-type FusionMode = 'hexagram' | 'forbidden';
+type FusionMode = 'hexagram' | 'forbidden' | 'starup';
 
 // 小型卡槽渲染（46×66），有图片显示图片，无图显示emoji
 const SlotMini: React.FC<{ card?: any; idx: number; onRemove?: () => void; color?: string }> =
@@ -54,7 +56,7 @@ const STAR_POINTS = [
 ];
 
 export const CauldronPage: React.FC = () => {
-  const { bag, doHexagramFusion, doForbiddenFusion, addLog, setPage, diamonds } = useGameStore();
+  const { bag, doHexagramFusion, doForbiddenFusion, starUpCard, findStarDupe, getStarUpPool, addLog, setPage, diamonds, setCardImage } = useGameStore();
   const [hexagramGlow, setHexagramGlow] = useState(false);
   const [showFusion, setShowFusion] = useState(false);
   const [mode, setMode] = useState<FusionMode>('hexagram');
@@ -62,6 +64,64 @@ export const CauldronPage: React.FC = () => {
   const [result, setResult] = useState<any>(null);
   const [showResult, setShowResult] = useState(false);
   const [nameEdit, setNameEdit] = useState('');
+  const [imageLoading, setImageLoading] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  // 升星
+  const [starUpCardId, setStarUpCardId] = useState<string | null>(null);
+  const [starUpSelectedFactor, setStarUpSelectedFactor] = useState<string | null>(null);
+
+  // 融合完成后异步生成卡面图
+  useEffect(() => {
+    if (!result || !imageLoading) return;
+    let cancelled = false;
+    (async () => {
+      let dataUrl: string | null = null;
+
+      // 先查图片缓存（卡片消耗后图不丢）
+      const key = [...result.card.factors.map((f: {id: string}) => f.id)].sort().join(',');
+      const cached = useGameStore.getState().cardImageCache[key];
+      if (cached) {
+        dataUrl = cached;
+        addLog('📋 复用缓存卡面!');
+      } else {
+        // 再查背包中是否有同因子组合的卡
+        const existing = useGameStore.getState().bag.find(c =>
+          c.id !== result.card.id &&
+          [...c.factors.map((f: {id: string}) => f.id)].sort().join(',') === key &&
+          c.imageUrl
+        );
+        if (existing?.imageUrl) {
+          dataUrl = existing.imageUrl;
+          addLog('📋 复用已有卡面!');
+        } else if (mode === 'starup' && result.card.imageUrl) {
+          addLog('🎨 正在绘制卡面...');
+          const newF = result.card.factors[result.card.factors.length - 1];
+          dataUrl = await starUpImg2Img(result.card.imageUrl, newF, result.card.stars);
+        } else {
+          addLog('🎨 正在绘制卡面...');
+          const prompt = buildCardPrompt(result.card.factors, result.card.name);
+          dataUrl = await generateCardImage(prompt);
+        }
+      }
+
+      if (cancelled) return;
+      if (dataUrl) {
+        setGeneratedImage(dataUrl);
+        setCardImage(result.card.id, dataUrl);
+        // 写入缓存，材料消耗后下次也能复用
+        if (!cached || cached !== dataUrl) {
+          useGameStore.setState(s => ({
+            cardImageCache: { ...s.cardImageCache, [key]: dataUrl! },
+          }));
+        }
+        addLog('✅ 卡面绘制完成!');
+      } else {
+        addLog('⚠️ 卡面生成失败，可稍后重试');
+      }
+      setImageLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [result, imageLoading, addLog, setCardImage, mode]);
 
   const singleFactorCards = bag.filter(c => c.factors.length === 1 && c.status === 'normal');
   const allCards = bag.filter(c => c.status === 'normal');
@@ -79,16 +139,22 @@ export const CauldronPage: React.FC = () => {
   const removeFromSlot = (idx: number) => { const ns = [...slots]; ns[idx] = null; setSlots(ns); };
   const doFusion = () => {
     const filled = slots.filter(Boolean).map(s => s!);
-    if (filled.length === 0) { addLog('⚠️ 至少放1张卡'); return; }
     let res;
-    if (mode === 'hexagram') res = doHexagramFusion(filled);
-    else {
+    if (mode === 'hexagram') {
+      if (filled.length === 0) { addLog('⚠️ 至少放1张卡'); return; }
+      res = doHexagramFusion(filled);
+    } else if (mode === 'starup') {
+      if (!starUpCardId || !starUpSelectedFactor) { addLog('⚠️ 请选择卡片和因子'); return; }
+      res = starUpCard(starUpCardId, starUpSelectedFactor);
+      if (!res) return;
+    } else {
       if (filled.length !== 2) { addLog('⚠️ 禁断融合需要2张卡'); return; }
       if (diamonds < 15) { addLog('💎 需要15钻石'); return; }
       res = doForbiddenFusion(filled[0], filled[1]);
     }
     if (!res) { addLog('⚠️ 融合失败'); return; }
     setResult(res); setNameEdit(res.card.name); setShowResult(true); setSlots(Array(6).fill(null));
+    setImageLoading(true); setGeneratedImage(null);
   };
   const getCard = (cardId: string) => bag.find(c => c.id === cardId);
 
@@ -136,12 +202,15 @@ export const CauldronPage: React.FC = () => {
 
             {/* 模式切换 */}
             <div className="flex gap-1 mb-5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-              <button onClick={() => { setMode('hexagram'); setSlots(Array(6).fill(null)); }}
+              <button onClick={() => { setMode('hexagram'); setSlots(Array(6).fill(null)); setStarUpCardId(null); setStarUpSelectedFactor(null); }}
                 className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'hexagram' ? 'text-white shadow-lg' : 'text-white/30 hover:text-white/60'}`}
                 style={mode === 'hexagram' ? { background: 'linear-gradient(135deg, #7e57c2, #5c3d99)' } : {}}>⭐ 六芒星</button>
-              <button onClick={() => { setMode('forbidden'); setSlots(Array(2).fill(null)); }}
+              <button onClick={() => { setMode('forbidden'); setSlots(Array(2).fill(null)); setStarUpCardId(null); setStarUpSelectedFactor(null); }}
                 className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'forbidden' ? 'text-white shadow-lg' : 'text-white/30 hover:text-white/60'}`}
                 style={mode === 'forbidden' ? { background: 'linear-gradient(135deg, #c0392b, #8b0000)' } : {}}>💀 禁断</button>
+              <button onClick={() => { setMode('starup'); setSlots(Array(6).fill(null)); setStarUpCardId(null); setStarUpSelectedFactor(null); }}
+                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'starup' ? 'text-white shadow-lg' : 'text-white/30 hover:text-white/60'}`}
+                style={mode === 'starup' ? { background: 'linear-gradient(135deg, #d4a574, #b8860b)' } : {}}>🌟 升星</button>
             </div>
 
             {mode === 'hexagram' ? (
@@ -185,7 +254,7 @@ export const CauldronPage: React.FC = () => {
                   🔮 炼成 ({slots.filter(Boolean).length}/6)
                 </Button>
               </>
-            ) : (
+            ) : mode === 'forbidden' ? (
               <>
                 <div className="flex items-center justify-center gap-8 h-40 mb-4">
                   {[0, 1].map(idx => {
@@ -203,9 +272,112 @@ export const CauldronPage: React.FC = () => {
                   💀 禁断融合 ({slots.filter(Boolean).length}/2)
                 </Button>
               </>
-            )}
+            ) : (
+              (() => {
+              // === 升星 Tab ===
+              const starCards = bag.filter(c => c.factors.length >= 3 && c.status === 'normal' && c.stars < 6);
+              const selected = starUpCardId ? bag.find(c => c.id === starUpCardId) : null;
+              const dupeId = starUpCardId ? findStarDupe(starUpCardId) : null;
+              const dupe = dupeId ? bag.find(c => c.id === dupeId) : null;
+              const pool = selected ? getStarUpPool(selected.stars + 1) : [];
 
-            {/* 卡片选择列表 */}
+              return (
+                <>
+                  <div className="text-xs text-white/40 text-center mb-2">选一张卡 + 复制品作为素材 → 升星</div>
+
+                  {/* 选主卡 */}
+                  <div className="mb-3">
+                    <div className="text-[10px] font-bold text-amber-400/60 mb-1">📌 选择要升星的卡 ★{selected ? selected.stars : '?'}→★{selected ? selected.stars + 1 : '?'}</div>
+                    <div className="flex gap-2 flex-wrap max-h-[100px] overflow-y-auto">
+                      {starCards.map(c => {
+                        const dup = findStarDupe(c.id);
+                        return (
+                          <button key={c.id} onClick={() => { setStarUpCardId(c.id); setStarUpSelectedFactor(null); }}
+                            className={`p-1.5 rounded-lg text-left text-xs transition-all ${starUpCardId === c.id ? 'ring-2 ring-amber-400 bg-amber-400/10' : 'bg-white/5 hover:bg-white/10'}`}
+                            style={{ minWidth: 80 }}>
+                            <div className="font-bold text-white/80 truncate">{c.name.slice(0,8)}</div>
+                            <div className="text-[10px] text-white/30">★{c.stars} {c.factors.length}因子 {dup ? '✅有素材' : '❌缺素材'}</div>
+                          </button>
+                        );
+                      })}
+                      {starCards.length === 0 && <div className="text-xs text-white/20">没有可升星的卡（需≥3因子，★1~5）</div>}
+                    </div>
+                  </div>
+
+                  {/* 素材卡状态 */}
+                  {selected && (
+                    <div className="mb-3 p-2 rounded-lg text-xs" style={{ background: dupe ? 'rgba(212,165,116,0.1)' : 'rgba(229,115,115,0.1)' }}>
+                      {dupe ? (
+                        <span className="text-amber-400">✅ 素材卡: {dupe.name} (★{dupe.stars}, {dupe.factors.length}因子匹配)</span>
+                      ) : (
+                        <span className="text-red-400">❌ 需要一张因子完全相同的卡作为素材</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 可选因子 */}
+                  {selected && pool.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-[10px] font-bold text-amber-400/60 mb-1">
+                        🎯 选择新因子 (★{selected.stars + 1} 可选{pool[0] ? (ALL_FACTORS[pool[0]]?.level || '?') : '?'}级)
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap max-h-[120px] overflow-y-auto">
+                        {pool.map(fid => {
+                          const f = ALL_FACTORS[fid];
+                          if (!f) return null;
+                          const already = selected.factors.some(ff => ff.id === fid);
+                          return (
+                            <button key={fid} disabled={already} onClick={() => setStarUpSelectedFactor(fid)}
+                              className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${already ? 'opacity-20' : 'hover:scale-105'} ${starUpSelectedFactor === fid ? 'ring-2 ring-amber-400 scale-110' : ''}`}
+                              style={{
+                                background: starUpSelectedFactor === fid ? 'rgba(212,165,116,0.3)' : 'rgba(255,255,255,0.06)',
+                                color: already ? '#666' : '#fff',
+                              }}>
+                              {f.id}
+                              <span className="block text-[8px] opacity-40">{f.level}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {selected && starUpSelectedFactor && (
+                    <div className="mb-3 flex items-center justify-center gap-3">
+                      <div className="text-center">
+                        <div className="text-[9px] text-white/30 mb-1">升级前 ★{selected.stars}</div>
+                        <div className="w-[72px] h-[112px] rounded-lg overflow-hidden border border-white/10" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                          {selected.imageUrl ? (
+                            <img src={selected.imageUrl} alt="before" className="w-full h-full object-contain" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-2xl opacity-20">🧙‍♀️</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-2xl text-amber-400">→</div>
+                      <div className="text-center">
+                        <div className="text-[9px] text-amber-400/60 mb-1">升级后 ★{selected.stars + 1}</div>
+                        <div className="w-[72px] h-[112px] rounded-lg overflow-hidden border border-amber-400/30 flex items-center justify-center" style={{ background: 'rgba(212,165,116,0.08)' }}>
+                          <div className="text-center">
+                            <span className="text-lg block">+{starUpSelectedFactor}</span>
+                            <span className="text-[9px] text-amber-400/50">{ALL_FACTORS[starUpSelectedFactor]?.level}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selected && starUpSelectedFactor && (
+                    <Button variant="copper" onClick={doFusion} className="mb-2">
+                      🌟 ★{selected.stars}→★{selected.stars + 1} — 习得 [{starUpSelectedFactor}]
+                    </Button>
+                  )}
+                </>
+              );
+            })())}
+
+            {/* 卡片选择列表 — 仅六芒星/禁断模式 */}
+            {mode !== 'starup' && (
             <div className="w-full mt-2 pt-3 border-t border-white/5">
               <div className="text-xs font-bold text-white/40 mb-2 uppercase tracking-wider">
                 {mode === 'hexagram' ? '📦 单因子卡' : '📦 可用卡'} · {availableCards.length}
@@ -244,6 +416,7 @@ export const CauldronPage: React.FC = () => {
                 {availableCards.length === 0 && <div className="col-span-3 text-center text-xs text-white/20 py-6">去学院买卡或副本铭刻</div>}
               </div>
             </div>
+            )}
           </div>
         </div>
       )}
@@ -256,7 +429,16 @@ export const CauldronPage: React.FC = () => {
             {result.stackingLog && <div className="mb-2 text-sm font-bold" style={{ color: 'var(--copper)' }}>{result.stackingLog}</div>}
             {result.conflicts?.length > 0 && <div className="mb-2 text-sm" style={{ color: 'var(--alert)' }}>⚡ {result.conflicts.join(', ')}</div>}
             {result.title && <div className="mb-2 text-sm font-bold" style={{ color: 'var(--magic)' }}>🌟 {result.title}</div>}
-            <div className="flex justify-center mb-4"><CardFrame card={result.card} /></div>
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/30 rounded-2xl">
+                    <div className="text-3xl animate-spin">🔮</div>
+                  </div>
+                )}
+                <CardFrame card={generatedImage ? { ...result.card, imageUrl: generatedImage } : result.card} />
+              </div>
+            </div>
             <input value={nameEdit} onChange={e => setNameEdit(e.target.value)}
               className="text-center font-bold text-lg border-b-2 bg-transparent outline-none w-full mb-4" style={{ borderColor: 'var(--magic)', color: 'var(--ink)' }} />
             <div className="flex flex-wrap justify-center gap-1 mb-4">{result.card.factors.map((f: any) => <FactorBadge key={f.id} factorId={f.id} level={f.level} />)}</div>

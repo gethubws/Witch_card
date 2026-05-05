@@ -327,3 +327,198 @@ body::before {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* =====================================================
+   战斗动画
+   ===================================================== */
+
+/* 卡片入场 — 从手中飞入 */
+@keyframes cardDeal {
+  from { opacity: 0; transform: translateY(40px) rotate(-3deg) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+}
+.animate-card-deal {
+  animation: cardDeal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* 攻击冲刺 — 向目标撞过去再弹回 */
+@keyframes cardStrike {
+  0%   { transform: translate(0, 0) scale(1); }
+  35%  { transform: translate(0, -50%) scale(1.1); }
+  50%  { transform: translate(0, -50%) scale(1.05); }
+  70%  { transform: translate(0, -10%) scale(0.98); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.animate-card-strike {
+  animation: cardStrike 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  z-index: 10;
+}
+
+/* 敌人攻击冲下 */
+@keyframes cardStrikeDown {
+  0%   { transform: translate(0, 0) scale(1); }
+  35%  { transform: translate(0, 50%) scale(1.1); }
+  50%  { transform: translate(0, 50%) scale(1.05); }
+  70%  { transform: translate(0, 10%) scale(0.98); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.animate-card-strike-down {
+  animation: cardStrikeDown 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  z-index: 10;
+}
+
+/* 受击震动 */
+@keyframes cardShake {
+  0%, 100% { transform: translateX(0); }
+  10%  { transform: translateX(-10px) rotate(-1.5deg); }
+  20%  { transform: translateX(10px) rotate(1.5deg); }
+  30%  { transform: translateX(-8px); }
+  40%  { transform: translateX(8px); }
+  50%  { transform: translateX(-5px); }
+  60%  { transform: translateX(5px); }
+  70%  { transform: translateX(-2px); }
+}
+.animate-card-shake {
+  animation: cardShake 0.45s ease-in-out both;
+}
+
+/* 受击闪红 */
+@keyframes hitFlash {
+  0%   { filter: brightness(1) drop-shadow(0 0 0 rgba(255,0,0,0)); }
+  10%  { filter: brightness(3) saturate(0.2) drop-shadow(0 0 16px rgba(255,60,60,0.6)); }
+  25%  { filter: brightness(1.5) saturate(0.8); }
+  60%  { filter: brightness(1.05); }
+  100% { filter: brightness(1); }
+}
+.animate-hit-flash {
+  animation: hitFlash 0.4s ease-out both;
+}
+
+/* 暴击 — 屏幕边缘红光 + 放大 */
+@keyframes critImpact {
+  0%   { transform: scale(1); filter: brightness(1); }
+  20%  { transform: scale(1.25); filter: brightness(3) saturate(0); }
+  40%  { transform: scale(1.15); filter: brightness(1.5); }
+  70%  { transform: scale(1.02); filter: brightness(1.1); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.animate-crit-impact {
+  animation: critImpact 0.55s ease-out both;
+}
+
+/* 暴击屏幕闪红 */
+@keyframes screenFlash {
+  0%   { box-shadow: inset 0 0 0 rgba(229, 115, 115, 0); }
+  30%  { box-shadow: inset 0 0 120px rgba(229, 115, 115, 0.45); }
+  100% { box-shadow: inset 0 0 0 rgba(229, 115, 115, 0); }
+}
+.animate-screen-flash {
+  animation: screenFlash 0.6s ease-out both;
+  pointer-events: none;
+}
+
+/* 击败翻转消失 */
+@keyframes cardDefeat {
+  0%   { transform: rotateY(0) scale(1); opacity: 1; }
+  40%  { transform: rotateY(90deg) scale(1.05); opacity: 0.8; }
+  60%  { transform: rotateY(180deg) scale(0.8); opacity: 0.4; }
+  100% { transform: rotateY(180deg) scale(0); opacity: 0; }
+}
+.animate-card-defeat {
+  animation: cardDefeat 0.55s ease-in both;
+  transform-style: preserve-3d;
+}
+
+/* 治疗流光 */
+@keyframes healGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(129, 199, 132, 0); }
+  50%      { box-shadow: 0 0 24px rgba(129, 199, 132, 0.6); }
+}
+.animate-heal-glow {
+  animation: healGlow 0.6s ease-in-out 2;
+}
+
+/* 回合高亮 — 当前行动卡 */
+@keyframes turnPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(126, 87, 194, 0.35); transform: translateY(0); }
+  50%      { box-shadow: 0 0 22px rgba(126, 87, 194, 0.65), 0 0 40px rgba(126, 87, 194, 0.2); transform: translateY(-4px); }
+}
+.animate-turn-pulse {
+  animation: turnPulse 1.2s ease-in-out infinite;
+}
+
+/* 伤害数字弹出 */
+@keyframes damagePop {
+  0%   { opacity: 1; transform: translateY(0) scale(0.5); }
+  30%  { opacity: 1; transform: translateY(-16px) scale(1.3); }
+  60%  { opacity: 1; transform: translateY(-24px) scale(1); }
+  100% { opacity: 0; transform: translateY(-36px) scale(0.7); }
+}
+.animate-damage-pop {
+  animation: damagePop 0.8s ease-out forwards;
+  pointer-events: none;
+}
+
+/* 伤害数字飘出（全屏定位版） */
+@keyframes flyDamage {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.4); }
+  20%  { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1.4); }
+  50%  { opacity: 1; transform: translateX(-50%) translateY(-28px) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-52px) scale(0.6); }
+}
+.animate-fly-damage {
+  animation: flyDamage 1s ease-out forwards;
+  pointer-events: none;
+}
+
+/* 战斗场地背景渐变 */
+.battle-bg {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(126, 87, 194, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(212, 165, 116, 0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #F4ECD8 0%, #EDE0C8 50%, #D5C4A1 100%);
+}
+
+/* 技能按钮 hover 提示信息 */
+.skill-btn {
+  position: relative;
+}
+.skill-btn:hover::after {
+  content: attr(data-desc);
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(62, 39, 35, 0.92);
+  color: #F4ECD8;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* 编队空位 */
+.team-slot {
+  border: 2px dashed rgba(126, 87, 194, 0.25);
+  border-radius: 14px;
+  background: rgba(244, 236, 216, 0.4);
+  transition: all 0.2s;
+}
+.team-slot.filled {
+  border-style: solid;
+  border-color: rgba(126, 87, 194, 0.5);
+  background: rgba(244, 236, 216, 0.7);
+}
+.team-slot:hover {
+  border-color: rgba(126, 87, 194, 0.6);
+  box-shadow: 0 0 16px rgba(126, 87, 194, 0.15);
+}
+
+/* 战斗日志滚动区 */
+.battle-log-scroll {
+  scroll-behavior: smooth;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+}

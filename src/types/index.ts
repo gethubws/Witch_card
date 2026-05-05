@@ -78,8 +78,7 @@ export interface Monster {
   id: string;
   name: string;
   eliteLevel: EliteLevel;   // 精英等级（替代 hardcoded stats）
-  factorPool: string[];      // 因子 id 列表
-  engraveCardNeeded: 'copper' | 'silver' | 'gold';
+  factorPool: string[];      // 因子 id 列表（N:6, R:9, SR:12, SSR:15）
   imageUrl: string;
   description: string;
   // stats 和 skills 由 MonsterEngine.buildMonster() 动态生成
@@ -116,9 +115,31 @@ export interface SaveData {
   unlockedAreas: string[];
   tutorialDone: boolean;
   questFlags: Record<string, boolean>;
-  engraveCopper: number;
+  blankEngraveCards: number;  // 空白铭刻卡（战斗中消耗一回合，随机抽取怪物1个因子）
+  captureCards: number;       // 空白卡（战斗中消耗一回合，捕捉整只怪物）
+  cardImageCache?: Record<string, string>;  // 因子组合key→图片dataUrl
+  engraveCopper: number;      // 旧版兼容
   engraveSilver: number;
   engraveGold: number;
+}
+
+// ---- 编队 ----
+export type TeamPosition = 'front' | 'supportA' | 'supportB';
+
+export interface TeamSlot {
+  position: TeamPosition;
+  cardId: string | null;
+}
+
+// ---- 战斗动画 ----
+export type AnimType = 'strike' | 'shake' | 'crit' | 'defeat' | 'heal' | 'buff';
+
+export interface BattleAnim {
+  type: AnimType;
+  sourceId: string;    // 攻击者 card id
+  targetId: string;    // 受击者 card id
+  damage?: number;
+  isCrit?: boolean;
 }
 
 // ---- 战斗 ----
@@ -131,14 +152,20 @@ export interface BattleState {
   log: BattleLogEntry[];
   canEngrave: boolean;
   engraveTarget?: Monster;
+  itemUsedThisTurn: boolean; // 当前回合是否已用物品
+  animQueue: BattleAnim[];
+  selectedSkill: number | null;
+  selectedTarget: number | null;
+  actingSide: 'player' | 'enemy'; // 当前行动方
 }
 
 export interface BattleCard {
   card: Card;
   currentHp: number;
   currentMp: number;
-  position: 'front' | 'supportA' | 'supportB';
+  position: TeamPosition;
   buffs: Buff[];
+  uid: string; // 动画用的唯一标识
 }
 
 export interface Buff {
