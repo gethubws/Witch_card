@@ -34,7 +34,7 @@ export interface Skill {
 
 export interface FactorDef {
   id: string;
-  category: FactorCategory;
+  category?: FactorCategory;
   level: FactorLevel;
   promptZh: string;
   promptEn: string;
@@ -43,7 +43,11 @@ export interface FactorDef {
   skill?: Skill;
   description: string;
   tag?: string;       // 子标签，如 "fire", "water"
+  element?: string;    // 九元素: 地火水风光暗人神以太
+  subElements?: string[]; // 融合因子的多元素标签
 }
+
+export type ElementType = '地' | '火' | '水' | '风' | '光' | '暗' | '人' | '神' | '以太';
 
 // ---- 卡片 ----
 export interface Card {
@@ -98,6 +102,7 @@ export interface ResonanceRule {
   title: string;
   minCount?: number;
   tag?: string;
+  element?: string;
   category?: FactorCategory;
   requiredAtoms?: string[];
   bonus: string;

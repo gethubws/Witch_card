@@ -1,5 +1,5 @@
 // ============================================
-// 魔女卡牌 — 融合引擎 (v2 — 6:1堆叠)
+// 魔女卡牌 — 融合引擎 v3 (九元素体系 · 6:1堆叠)
 // ============================================
 import type { FactorDef } from '../types';
 import { ALL_FACTORS, CONFLICT_FUSIONS, RESONANCES } from '../config/factors';
@@ -10,62 +10,48 @@ export interface FusionResult {
   appliedResonances: string[];
   title?: string;
   stackingLog?: string;
-  stackingBonus?: { hp: number; atk: number; mp: number };  // 6合1融合奖励属性
+  stackingBonus?: { hp: number; atk: number; mp: number };
 }
 
-// 等级权重
 const LEVEL_ORDER = { N:0, R:1, SR:2, SSR:3, UR:4 } as const;
 const LEVEL_NAMES = ['N','R','SR','SSR','UR'] as const;
 type FactorLevel = keyof typeof LEVEL_ORDER;
 
-/**
- * 堆叠规则：6×同因子 → 升阶一档
- * 先在 ALL_FACTORS 中查找精确定义的升级因子（如 火_R），
- * 找不到则用属性倍率兜底
- */
-// N → R → SR → SSR → UR 名称映射（元素系精确定义，其余后缀兜底）
+/** 元素因子升级链 (按因子ID索引) */
 const LEVEL_UP_NAMES: Record<string, Record<number, string>> = {
-  '火': { 1:'烈焰', 2:'狱火', 3:'阳炎', 4:'凤凰火' },
+  '火': { 1:'烈焰', 2:'爆炎', 3:'阳炎', 4:'凤凰火' },
   '水': { 1:'激流', 2:'深渊', 3:'沧溟', 4:'归墟' },
+  '冰': { 1:'极寒', 2:'玄冰', 3:'永冻', 4:'绝对零度' },
   '风': { 1:'暴风', 2:'飓风', 3:'虚空风', 4:'时空风暴' },
   '雷': { 1:'雷霆', 2:'劫雷', 3:'天罚', 4:'混沌雷' },
-  '冰': { 1:'极寒', 2:'玄冰', 3:'永冻', 4:'绝对零度' },
   '暗': { 1:'暗影', 2:'冥暗', 3:'虚无', 4:'湮灭' },
   '光': { 1:'圣光', 2:'神辉', 3:'天光', 4:'创世之光' },
   '地': { 1:'岩石', 2:'山岳', 3:'地核', 4:'星核' },
+  '王之力': { 1:'王之粘液' },
+  '巨龙血脉': { 1:'龙神血脉' },
 };
 
 function upgradeFactor(f: FactorDef, levelsUp: number): FactorDef {
-  // 元素系：按命名表精准查找
-  if (f.category === 'element') {
+  if (levelsUp < 1) return f;
+
+  // 元素因子：按命名表精准查找
+  if (f.element && LEVEL_UP_NAMES[f.id]) {
     const nameMap = LEVEL_UP_NAMES[f.id];
-    if (nameMap && nameMap[levelsUp]) {
-      const target = ALL_FACTORS[nameMap[levelsUp]];
-      if (target) return target;
-    }
+    const target = nameMap?.[levelsUp] ? ALL_FACTORS[nameMap[levelsUp]] : null;
+    if (target) return target;
   }
 
-  // 非元素系兜底：用 _R 后缀
-  const baseId = f.id.replace(/_(R|SR|SSR|UR)$/, '');
-  const currentLevelIdx = LEVEL_ORDER[f.level as FactorLevel] ?? 0;
-  const targetIdx = Math.min(currentLevelIdx + levelsUp, 4);
-  const targetId = targetIdx >= 1 ? baseId + '_' + LEVEL_NAMES[targetIdx] : baseId;
-
-  if (ALL_FACTORS[targetId]) return ALL_FACTORS[targetId];
-
-  // 最终兜底：属性倍率
-  if (levelsUp < 1) return f;
+  // 兜底：属性倍率
   const scale = Math.pow(1.4, levelsUp);
   const stats = { ...f.stats };
   for (const k of Object.keys(stats as Record<string,number>)) {
     (stats as any)[k] = Math.round((stats as any)[k] * scale);
   }
-  return { ...f, id: targetId, level: LEVEL_NAMES[targetIdx] as FactorLevel, stats };
+  const targetIdx = Math.min((LEVEL_ORDER[f.level as FactorLevel] ?? 0) + levelsUp, 4);
+  return { ...f, level: LEVEL_NAMES[targetIdx] as FactorLevel, stats };
 }
 
-/**
- * 六芒星炼成：6张单因子卡 → 堆叠 → 冲突融合 → 共鸣
- */
+/** 六芒星炼成 */
 export function hexagramFusion(inputFactors: FactorDef[]): FusionResult {
   const { factors: stacked, stackingLog, stackingBonus } = applyFactorStacking(inputFactors);
   const { factors: afterConflict, appliedConflicts } = applyConflictFusions(stacked);
@@ -73,13 +59,8 @@ export function hexagramFusion(inputFactors: FactorDef[]): FusionResult {
   return { factors: afterConflict, appliedConflicts, appliedResonances, title, stackingLog, stackingBonus };
 }
 
-/**
- * 禁断融合：2张任意卡 → 49%继承 → 堆叠 → 冲突 → 共鸣
- */
-export function forbiddenFusion(
-  parentFactorsA: FactorDef[],
-  parentFactorsB: FactorDef[],
-): FusionResult {
+/** 禁断融合 */
+export function forbiddenFusion(parentFactorsA: FactorDef[], parentFactorsB: FactorDef[]): FusionResult {
   const inherited: FactorDef[] = [];
   for (const f of [...parentFactorsA, ...parentFactorsB]) {
     if (Math.random() < 0.49) inherited.push(f);
@@ -90,14 +71,12 @@ export function forbiddenFusion(
   return { factors, appliedConflicts, appliedResonances, title, stackingLog, stackingBonus };
 }
 
-/**
- * 同因子堆叠：6×同因子 → 升阶一档
- * N→R: 6张, R→SR: 6张, SR→SSR: 6张, SSR→UR: 6张
- * 不足 6 张不升阶
- */
-function applyFactorStacking(
-  input: FactorDef[],
-): { factors: FactorDef[]; stackingLog?: string; stackingBonus?: { hp: number; atk: number; mp: number } } {
+/** 同因子堆叠：6×同因子 → 升阶 */
+function applyFactorStacking(input: FactorDef[]): {
+  factors: FactorDef[];
+  stackingLog?: string;
+  stackingBonus?: { hp: number; atk: number; mp: number };
+} {
   const count: Record<string, number> = {};
   for (const f of input) count[f.id] = (count[f.id] || 0) + 1;
 
@@ -109,39 +88,26 @@ function applyFactorStacking(
     if (count[f.id] === 0) continue;
     const n = count[f.id];
     count[f.id] = 0;
-
-    const upgradesCount = Math.floor(n / 6);
-    const remainder = n % 6;
-
-    if (upgradesCount > 0) {
-      totalUpgrades += upgradesCount;
-      const upgraded = upgradeFactor(f, upgradesCount);
+    const ups = Math.floor(n / 6);
+    const rem = n % 6;
+    if (ups > 0) {
+      totalUpgrades += ups;
+      const upgraded = upgradeFactor(f, ups);
       result.push(upgraded);
       upgrades.push(`${f.id}×${n}→${upgraded.id}(${upgraded.level})`);
     }
-    for (let i = 0; i < remainder; i++) {
-      result.push(f);
-    }
+    for (let i = 0; i < rem; i++) result.push(f);
   }
 
-  // 融合奖励：每发生一次6合1升阶，送基础属性
   const stackingBonus = totalUpgrades > 0
     ? { hp: totalUpgrades * 10, atk: totalUpgrades * 2, mp: totalUpgrades * 2 }
     : undefined;
 
-  return {
-    factors: result,
-    stackingLog: upgrades.length > 0 ? `🔥 堆叠: ${upgrades.join(', ')}` : undefined,
-    stackingBonus,
-  };
+  return { factors: result, stackingLog: upgrades.length > 0 ? `🔥 堆叠: ${upgrades.join(', ')}` : undefined, stackingBonus };
 }
 
-/**
- * 检测并应用冲突融合
- */
-function applyConflictFusions(
-  factors: FactorDef[],
-): { factors: FactorDef[]; appliedConflicts: string[] } {
+/** 冲突融合 */
+function applyConflictFusions(factors: FactorDef[]): { factors: FactorDef[]; appliedConflicts: string[] } {
   const appliedConflicts: string[] = [];
   const consumed = new Set<number>();
 
@@ -154,43 +120,28 @@ function applyConflictFusions(
       else if (idxB === -1 && factors[i].id === idB) idxB = i;
     }
     if (idxA !== -1 && idxB !== -1) {
-      consumed.add(idxA);
-      consumed.add(idxB);
-      const fusionFactor = ALL_FACTORS[rule.output];
-      if (fusionFactor) {
-        factors.push(fusionFactor);
-        appliedConflicts.push(`${idA}+${idB}→${rule.output}`);
-      }
+      consumed.add(idxA); consumed.add(idxB);
+      const fusion = ALL_FACTORS[rule.output];
+      if (fusion) { factors.push(fusion); appliedConflicts.push(`${idA}+${idB}→${rule.output}`); }
     }
   }
   return { factors: factors.filter((_, i) => !consumed.has(i)), appliedConflicts };
 }
 
-/**
- * 检测共鸣
- */
-function applyResonances(
-  factors: FactorDef[],
-): { title?: string; appliedResonances: string[] } {
+/** 共鸣检测 */
+function applyResonances(factors: FactorDef[]): { title?: string; appliedResonances: string[] } {
   const appliedResonances: string[] = [];
   let title: string | undefined;
 
   for (const r of RESONANCES) {
     let count = 0;
     for (const f of factors) {
-      if (r.requiredAtoms) {
-        // 要求特定因子 id
-        if (r.requiredAtoms.includes(f.id)) count++;
-      } else if (r.tag) {
-        // 按 tag 统计
-        if (f.tag === r.tag) count++;
-      } else if (r.category) {
-        // 按类别统计
-        if (f.category === r.category) count++;
-      }
+      if (r.requiredAtoms?.includes(f.id)) count++;
+      else if (r.tag && f.tag === r.tag) count++;
+      else if (r.category && f.category === r.category) count++;
+      else if (r.element && f.element === r.element) count++;
     }
-    const threshold = r.minCount ?? 3;
-    if (count >= threshold) {
+    if (count >= (r.minCount ?? 3)) {
       appliedResonances.push(r.bonus);
       if (!title) title = r.title;
     }
@@ -198,9 +149,7 @@ function applyResonances(
   return { title, appliedResonances };
 }
 
-// ============================================
 // 骰子命名器
-// ============================================
 const STYLE_PREFIX = ['烈焰','冰霜','暗影','光辉','风暴','深渊','星辰','月光','雷鸣','森林','钢铁','幻梦'];
 const SUFFIX = ['使者','契约','之心','化身','魔女','符文','誓约','印记','低语','祝福','诅咒','守护'];
 
