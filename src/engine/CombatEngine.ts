@@ -46,7 +46,7 @@ export function calcDamage(
   devDegree: number = 1,
   counterMult: number = 1,
 ): { damage: number; crit: boolean } {
-  const base = Math.max(1, atk * multiplier - def * 0.5);
+  const base = Math.max(1, atk * multiplier - def);
   const variance = 0.9 + Math.random() * 0.2;
   let damage = Math.round(base * variance * devDegree * counterMult);
 
