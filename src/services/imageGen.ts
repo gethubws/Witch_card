@@ -41,7 +41,7 @@ export async function generateCardImage(prompt: string): Promise<string | null> 
       body: JSON.stringify({
         model: DOUBAO_MODEL,
         prompt: `${prompt}, ${NEGATIVE}`,
-        size: '2048x2048', // 4.5 要求 2048×2048
+        size: '1728x2304', // 3:4竖版卡片, 满足4.5最低像素要求
         response_format: 'b64_json',
         n: 1,
       }),
