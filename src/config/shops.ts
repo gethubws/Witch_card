@@ -27,7 +27,7 @@ export const DUNGEONS: Dungeon[] = [
     description:'弹弹团子的乐园·新手试炼',
     difficulty:'N',
     monsters: ['green_slime','red_slime','blue_slime','balloon_slime',
-               'thunder_slime','wind_slime','giant_slime',
+               'thunder_slime','ice_slime','giant_slime',
                'light_slime','dark_slime'],
     bossMonster: 'slime_king',
     hiddenMonster: 'chaos_slime',
