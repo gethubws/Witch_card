@@ -1,22 +1,20 @@
 // ============================================
-// 魔女卡牌 — SD 图片生成服务
-// 通过 Vite 代理 /sd-api → Windows SD Forge/A1111
+// 魔女卡牌 — 图片生成服务 (豆包 Seedream)
+// API: https://ark.cn-beijing.volces.com/api/v3/images/generations
+// 模型: doubao-seedream-4-0-250828 (200张/天, 1024×1024)
 // ============================================
 import type { FactorDef } from '../types';
 
-const SD_BASE = import.meta.env.DEV ? '/sd-api' : '';
-const SD_URL = `${SD_BASE}/sdapi/v1/txt2img`;
-const SD_IMG2IMG_URL = `${SD_BASE}/sdapi/v1/img2img`;
+const DOUBAO_URL = 'https://ark.cn-beijing.volces.com/api/v3/images/generations';
+const DOUBAO_KEY = 'ark-917189ab-74ce-48e4-b03a-5caf088ff2a7-1cac1';
+const DOUBAO_MODEL = 'doubao-seedream-4-0-250828';
 
 const STYLE = [
-  'chibi cute magical creature or witch apprentice',
-  'watercolor texture, hand-drawn style',
-  'warm lighting, cream and brown color palette',
-  'soft edges, cute but slightly clumsy',
-  'Ghibli background style, tarot card frame',
-  '2.5 head proportion, doe eyes',
-  'matte texture',
-  'simple warm parchment background',
+  'chibi cute magical creature, watercolor texture, hand-drawn style',
+  'warm lighting, cream and brown palette, soft edges',
+  'Ghibli background, tarot card frame',
+  '2.5 head proportion, doe eyes, matte texture',
+  'simple parchment background',
 ].join(', ');
 
 const NEGATIVE = [
@@ -26,103 +24,64 @@ const NEGATIVE = [
   'nsfw, text, watermark, signature',
 ].join(', ');
 
-export function buildCardPrompt(factors: FactorDef[], cardName: string): string {
-  const mainFactor = factors[0];
-  const factorDescs = factors.slice(0, 6).map(f => f.promptEn || f.id).join(', ');
-  let subject = '';
-  if (mainFactor?.category === 'element') {
-    subject = `${mainFactor.promptEn} witch apprentice girl`;
-  } else if (mainFactor?.category === 'trait') {
-    subject = `cute creature with ${mainFactor.promptEn}`;
-  } else if (mainFactor?.category === 'magic') {
-    subject = `little witch casting ${mainFactor.promptEn}`;
-  } else {
-    subject = `${mainFactor?.promptEn || 'cute magical apprentice'}`;
-  }
-  return `${subject}, ${STYLE}, ${factorDescs}`;
+export function buildCardPrompt(factors: FactorDef[], _cardName: string): string {
+  const main = factors[0];
+  const subject = main?.promptEn || main?.promptZh || 'cute magical creature';
+  return `${subject}, ${STYLE}`;
 }
 
 export async function generateCardImage(prompt: string): Promise<string | null> {
   try {
-    const resp = await fetch(SD_URL, {
+    const resp = await fetch(DOUBAO_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DOUBAO_KEY}`,
+      },
       body: JSON.stringify({
-        prompt,
-        negative_prompt: NEGATIVE,
-        seed: -1,
-        width: 512,
-        height: 768,
-        steps: 25,
-        cfg_scale: 6.0,
-        sampler_name: 'DPM++ 2M',
-        scheduler: 'Karras',
+        model: DOUBAO_MODEL,
+        prompt: `${prompt}, ${NEGATIVE}`,
+        size: '1024x1024',
+        response_format: 'b64_json',
+        n: 1,
       }),
     });
 
-    const data = await resp.json();
-    if (data?.images?.[0]) {
-      return `data:image/png;base64,${data.images[0]}`;
+    if (!resp.ok) {
+      const err = await resp.text();
+      console.warn('豆包 API error:', resp.status, err.slice(0, 200));
+      return null;
     }
-    console.warn('SD gen failed:', JSON.stringify(data).slice(0, 200));
+
+    const data = await resp.json();
+    const b64 = data?.data?.[0]?.b64_json;
+    if (b64) return `data:image/png;base64,${b64}`;
+    console.warn('豆包: no image in response');
     return null;
   } catch (e) {
-    console.warn('SD gen error:', e);
+    console.warn('豆包 gen error:', e);
     return null;
   }
 }
 
 export async function starUpImg2Img(
-  currentImageDataUrl: string,
+  _currentImageDataUrl: string,
   newFactor: FactorDef,
   targetStars: number,
 ): Promise<string | null> {
-  const denoisingMap: Record<number, number> = { 2: 0.35, 3: 0.45, 4: 0.55, 5: 0.65, 6: 0.75 };
-  const denoising = denoisingMap[targetStars] || 0.45;
-
-  const tierDesc = targetStars >= 6 ? 'ultimate divine form'
-    : targetStars >= 5 ? 'dramatic power surge'
-    : targetStars >= 4 ? 'stronger aura, evolved appearance'
-    : targetStars >= 3 ? 'enhanced glow, more intricate'
-    : 'slightly enhanced';
-
-  const starPrompt = [
-    `evolved version gaining ${newFactor.promptEn}`,
-    tierDesc,
-    `star level ${targetStars}`,
+  const tiers: Record<number, string> = {
+    2: 'slightly enhanced glow',
+    3: 'refined details, intricate glow',
+    4: 'stronger aura, evolved appearance',
+    5: 'dramatic power surge, radiant energy',
+    6: 'ultimate divine form, legendary transformation',
+  };
+  const prompt = [
+    `${newFactor.promptEn || newFactor.id} evolved to star ${targetStars}`,
+    tiers[targetStars] || 'evolved',
     STYLE,
   ].join(', ');
-
-  try {
-    const b64 = currentImageDataUrl.split(',')[1];
-    const resp = await fetch(SD_IMG2IMG_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        init_images: [b64],
-        prompt: starPrompt,
-        negative_prompt: NEGATIVE,
-        seed: -1,
-        width: 512,
-        height: 768,
-        steps: 25,
-        cfg_scale: 7.0,
-        denoising_strength: denoising,
-        sampler_name: 'DPM++ 2M',
-        scheduler: 'Karras',
-      }),
-    });
-
-    const data = await resp.json();
-    if (data?.images?.[0]) {
-      return `data:image/png;base64,${data.images[0]}`;
-    }
-    console.warn('SD img2img failed:', JSON.stringify(data).slice(0, 200));
-    return null;
-  } catch (e) {
-    console.warn('SD img2img error:', e);
-    return null;
-  }
+  return generateCardImage(prompt);
 }
 
 export function base64ToBlobUrl(b64DataUrl: string): string {
@@ -130,9 +89,7 @@ export function base64ToBlobUrl(b64DataUrl: string): string {
   const mimeType = b64DataUrl.split(',')[0].split(':')[1].split(';')[0];
   const ab = new ArrayBuffer(byteString.length);
   const ia = new Uint8Array(ab);
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
+  for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
   const blob = new Blob([ab], { type: mimeType });
   return URL.createObjectURL(blob);
 }
