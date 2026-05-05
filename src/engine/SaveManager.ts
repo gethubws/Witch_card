@@ -65,7 +65,7 @@ export function createNewSave(): SaveData {
     bag: [],
     warehouse: [],
     hospitalQueue: [],
-    unlockedAreas: ['forest_trial'],
+    unlockedAreas: ['slime_plains'],
     tutorialDone: false,
     questFlags: {},
     engraveCopper: 0,
