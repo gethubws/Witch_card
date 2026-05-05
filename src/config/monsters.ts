@@ -54,9 +54,9 @@ export const MONSTERS: Monster[] = [
     imageUrl:'/monsters/thunder_slime.png', description:'体内涌动雷光的金纹史莱姆',
   },
   {
-    id:'wind_slime', name:'💨 风史莱姆', eliteLevel:'elite',
-    factorPool:['飓风','风','游击','地','水','光','雷','冰','守护'],
-    imageUrl:'/monsters/wind_slime.png', description:'形如旋风，来去无踪',
+    id:'ice_slime', name:'❄️ 冰史莱姆', eliteLevel:'elite',
+    factorPool:['玄冰','冰','水','治愈','守护','精准','地','风','光'],
+    imageUrl:'/monsters/ice_slime.png', description:'玄冰壳包裹的寒气史莱姆',
   },
   {
     id:'giant_slime', name:'🪨 大型史莱姆', eliteLevel:'elite',
