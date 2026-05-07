@@ -55,6 +55,7 @@ interface GameState {
   pendingMapEnemies: ReturnType<typeof createBattleMonster>[] | null;
   pendingMapGroupName: string | null;
   pendingMapGroupId: string | null;
+  pendingMapEntry: boolean;
   
   // 引擎操作
   addLog: (msg: string) => void;
@@ -122,6 +123,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   pendingMapEnemies: null,
   pendingMapGroupName: null,
   pendingMapGroupId: null,
+  pendingMapEntry: false,
   engraveCopper: 0,
   engraveSilver: 0,
   engraveGold: 0,

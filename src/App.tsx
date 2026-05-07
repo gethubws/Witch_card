@@ -28,7 +28,7 @@ const MAP_ITEMS = [
 
 const App: React.FC = () => {
   const { currentPage, setPage, gold, diamonds, bag, battle, pendingDungeonId, startBattle, load, save, logMessages, tutorialDone, newGame, blankEngraveCards, captureCards,
-    defeatedMapGroups, pendingMapEnemies, triggerMapEncounter, startMapBattle, finishMapBattle } = useGameStore();
+    defeatedMapGroups, pendingMapEnemies, pendingMapEntry, triggerMapEncounter, startMapBattle, finishMapBattle } = useGameStore();
 
   // debug only
   (window as any).__store = useGameStore;
@@ -86,7 +86,16 @@ const App: React.FC = () => {
   if (currentPage === 'cauldron') return <CauldronPage />;
   if (currentPage === 'shop') return <ShopPage />;
   if (currentPage === 'dungeon') return <DungeonPage />;
-  if (currentPage === 'teamSelect') return pendingMapEnemies ? (
+  if (currentPage === 'teamSelect') return pendingMapEntry ? (
+    <TeamSelect
+      dungeonId="slime_plains"
+      onBack={() => { useGameStore.setState({ pendingMapEntry: false }); setPage('home'); }}
+      onStart={(_team) => {
+        useGameStore.setState({ pendingMapEntry: false });
+        setPage('map');
+      }}
+    />
+  ) : pendingMapEnemies ? (
     <TeamSelect
       dungeonId={pendingMapEnemies.length > 0 ? 'slime_plains' : pendingDungeonId || 'slime_plains'}
       onBack={() => setPage('map')}
@@ -180,7 +189,20 @@ const App: React.FC = () => {
             <h2 className="font-bold text-lg mb-4" style={{ color: 'var(--ink)' }}>🗺️ 地图</h2>
             {MAP_ITEMS.map(item => (
               <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/50 mb-2 transition-all"
-                onClick={() => { setPage(item.id); setShowMap(false); }}>
+                onClick={() => {
+                  if (item.id === 'map') {
+                    const s = useGameStore.getState();
+                    if (s.bag.filter(c => c.status === 'normal').length === 0) {
+                      s.addLog('⚠️ 没有可用的卡片，先去融合几张吧');
+                    } else {
+                      useGameStore.setState({ pendingMapEntry: true });
+                      setPage('teamSelect');
+                    }
+                  } else {
+                    setPage(item.id);
+                  }
+                  setShowMap(false);
+                }}>
                 <span className="text-2xl">{item.icon}</span>
                 <div>
                   <div className="font-bold text-sm">{item.label}</div>
