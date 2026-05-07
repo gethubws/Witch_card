@@ -11,12 +11,14 @@ import { TeamSelect } from './components/battle/TeamSelect';
 import { BattleField } from './components/battle/BattleField';
 import { HospitalPage } from './components/hospital/HospitalPage';
 import { WarehousePage } from './components/warehouse/WarehousePage';
+import MapPage from './components/map/MapPage';
 import { TutorialOverlay } from './components/tutorial/TutorialOverlay';
 import { Modal, Button } from './components/ui';
 import { ALL_FACTORS } from './config/factors';
 
 // 地图导航
 const MAP_ITEMS = [
+  { id: 'map' as const, icon: '🗺️', label: '史莱姆平原', desc: '探索战斗' },
   { id: 'cauldron' as const, icon: '🧪', label: '魔药屋', desc: '六芒星炼成' },
   { id: 'dungeon' as const, icon: '⚔️', label: '副本', desc: '打怪铭刻' },
   { id: 'shop' as const, icon: '🏫', label: '学院', desc: '买卡·工具' },
@@ -25,7 +27,8 @@ const MAP_ITEMS = [
 ];
 
 const App: React.FC = () => {
-  const { currentPage, setPage, gold, diamonds, bag, battle, pendingDungeonId, startBattle, load, save, logMessages, tutorialDone, newGame, blankEngraveCards, captureCards } = useGameStore();
+  const { currentPage, setPage, gold, diamonds, bag, battle, pendingDungeonId, startBattle, load, save, logMessages, tutorialDone, newGame, blankEngraveCards, captureCards,
+    defeatedMapGroups, pendingMapEnemies, triggerMapEncounter, startMapBattle, finishMapBattle } = useGameStore();
 
   // debug only
   (window as any).__store = useGameStore;
@@ -71,10 +74,25 @@ const App: React.FC = () => {
   }
 
   if (battle) return <BattleField />;
+  if (currentPage === 'map') return (
+    <MapPage
+      onReturnHome={() => setPage('home')}
+      onStartBattle={(enemies, groupName, isBoss) => {
+        triggerMapEncounter(enemies, groupName, groupName || undefined);
+      }}
+      defeatedGroups={defeatedMapGroups}
+    />
+  );
   if (currentPage === 'cauldron') return <CauldronPage />;
   if (currentPage === 'shop') return <ShopPage />;
   if (currentPage === 'dungeon') return <DungeonPage />;
-  if (currentPage === 'teamSelect') return (
+  if (currentPage === 'teamSelect') return pendingMapEnemies ? (
+    <TeamSelect
+      dungeonId={pendingMapEnemies.length > 0 ? 'slime_plains' : pendingDungeonId || 'slime_plains'}
+      onBack={() => setPage('map')}
+      onStart={(team) => startMapBattle(team)}
+    />
+  ) : (
     <TeamSelect
       dungeonId={pendingDungeonId || 'slime_plains'}
       onBack={() => setPage('dungeon')}

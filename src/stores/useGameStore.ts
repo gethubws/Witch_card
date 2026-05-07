@@ -44,11 +44,17 @@ interface GameState {
   
   // 图片缓存：因子组合key → dataUrl，卡片消耗后图不丢
   cardImageCache: Record<string, string>;
-  currentPage: 'home' | 'cauldron' | 'battle' | 'dungeon' | 'teamSelect' | 'shop' | 'hospital' | 'warehouse';
+  currentPage: 'home' | 'cauldron' | 'battle' | 'dungeon' | 'map' | 'teamSelect' | 'shop' | 'hospital' | 'warehouse';
   battle: BattleState | null;
   pendingDungeonId: string | null;
   fusionAnimating: boolean;
   logMessages: string[];
+
+  // 地图探索
+  defeatedMapGroups: string[];
+  pendingMapEnemies: ReturnType<typeof createBattleMonster>[] | null;
+  pendingMapGroupName: string | null;
+  pendingMapGroupId: string | null;
   
   // 引擎操作
   addLog: (msg: string) => void;
@@ -83,6 +89,11 @@ interface GameState {
   playerDefend: () => void;
   enemyAction: () => void;
   endBattle: () => void;
+
+  // 地图探索战斗
+  triggerMapEncounter: (enemies: ReturnType<typeof createBattleMonster>[], groupName?: string, groupId?: string) => void;
+  startMapBattle: (teamSelection: { cardId: string; position: TeamPosition }[]) => void;
+  finishMapBattle: () => void;
   
   // 治疗
   healCard: (cardId: string) => void;
@@ -107,6 +118,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   pendingDungeonId: null,
   fusionAnimating: false,
   logMessages: [],
+  defeatedMapGroups: [],
+  pendingMapEnemies: null,
+  pendingMapGroupName: null,
+  pendingMapGroupId: null,
   engraveCopper: 0,
   engraveSilver: 0,
   engraveGold: 0,
@@ -421,6 +436,66 @@ export const useGameStore = create<GameState>((set, get) => ({
     set(s => ({ blankEngraveCards: s.blankEngraveCards - 1 }));
     get().addLog(`📜 铭刻: ${factor} (${f.level})`);
     return factor;
+  },
+
+  // ═══ 地图探索战斗 ═══
+  triggerMapEncounter: (enemies, groupName?, groupId?) => {
+    set({
+      pendingMapEnemies: enemies,
+      pendingMapGroupName: groupName || null,
+      pendingMapGroupId: groupId || null,
+      currentPage: 'teamSelect',
+    });
+  },
+
+  startMapBattle: (teamSelection) => {
+    const s = get();
+    const enemies = s.pendingMapEnemies;
+    if (!enemies || enemies.length === 0) return;
+
+    const team: BattleCard[] = [];
+    for (const slot of teamSelection) {
+      const card = s.bag.find(c => c.id === slot.cardId);
+      if (card) team.push(createBattleCard(card, slot.position));
+    }
+    if (team.length === 0) return;
+
+    set({
+      battle: {
+        phase: 'fighting',
+        playerTeam: team,
+        enemyTeam: enemies,
+        currentTurn: 1,
+        activeIndex: 0,
+        log: [],
+        canEngrave: true,
+        animQueue: [],
+        selectedSkill: null,
+        selectedTarget: null,
+        actingSide: 'player',
+        itemUsedThisTurn: false,
+      },
+      currentPage: 'battle',
+      pendingMapEnemies: null,
+    });
+  },
+
+  finishMapBattle: () => {
+    const s = get();
+    const cleared = new Set(s.defeatedMapGroups);
+    if (s.pendingMapGroupId) cleared.add(s.pendingMapGroupId);
+    if (s.battle) {
+      for (const e of s.battle.enemyTeam) {
+        if (e.currentHp <= 0 && (e as any)._soloId) cleared.add((e as any)._soloId);
+      }
+    }
+    set({
+      currentPage: 'map',
+      battle: null,
+      defeatedMapGroups: [...cleared],
+      pendingMapGroupId: null,
+      pendingMapGroupName: null,
+    });
   },
 
   selectDungeon: (dungeonId) => {
